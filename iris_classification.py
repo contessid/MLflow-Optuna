@@ -1,5 +1,10 @@
+import os
+
 import mlflow
+import mlflow.models
+import mlflow.sklearn
 import optuna
+from dotenv import load_dotenv
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -7,7 +12,9 @@ from sklearn.model_selection import train_test_split
 from mlflow_utils import get_or_create_experiment
 from optuna_utils import champion_callback, logistic_regression_error
 
-mlflow.set_tracking_uri("http://localhost:8080")
+load_dotenv()
+
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
 
 iris = load_iris()
 
@@ -55,7 +62,8 @@ with mlflow.start_run(experiment_id=experiment_id, run_name=run_name, nested=Tru
     # Log a fit model instance
     model = LogisticRegression(**study.best_params)
     model.fit(X_train, y_train)
-
+    signature = mlflow.models.infer_signature(X_train, y_train)
+    # .get_model_signature(X_train, model.predict(X_train))
     artifact_path = "model"
 
     # Log the model as an artifact
@@ -63,7 +71,8 @@ with mlflow.start_run(experiment_id=experiment_id, run_name=run_name, nested=Tru
         sk_model=model,
         artifact_path=artifact_path,
         input_example=X_train[0].reshape(1, -1),
-        registered_model_name="Iris Classification Model",
+        signature=signature,
+        registered_model_name="iris_classification_staging",
     )
 
     # Get the logged model uri so that we can load it from the artifact store
