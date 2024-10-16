@@ -23,12 +23,14 @@ def logistic_regression_error(trial, X_train, X_valid, y_train, y_valid):
         logreg.fit(X_train, y_train)
         preds = logreg.predict(X_valid)
         error = root_mean_squared_error(y_valid, preds)
+        accuracy = logreg.score(X_valid, y_valid)
 
         # Log to MLflow
         mlflow.log_params(params)
         mlflow.log_metric("rmse", error)
+        mlflow.log_metric("accuracy", accuracy)
 
-    return error
+    return accuracy
 
 
 # define a logging callback that will report on only new challenger parameter configurations if a
