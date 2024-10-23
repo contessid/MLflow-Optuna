@@ -62,12 +62,13 @@ The `iris_classification.py` script performs the following steps:
 3. **Split Data**: Splits the dataset into training and validation sets.
 4. **Set MLflow Experiment**: Sets the current active MLflow experiment using the `get_or_create_experiment` function from `mlflow_utils.py`.
 5. **Start MLflow Run**: Initiates an MLflow run and creates an Optuna study for hyperparameter tuning.
-6. **Optimize Hyperparameters**: Uses Optuna to optimize the hyperparameters of a logistic regression model. The `logistic_regression_error` function from `optuna_utils.py` is used as the objective function.
-7. **Log Parameters and Metrics**: Logs the best hyperparameters and the best root mean square error (RMSE) to MLflow.
+6. **Optimize Hyperparameters**: Uses Optuna to optimize the hyperparameters of a logistic regression model. The `objective` function from `optuna_utils.py` is used as the objective function.
+7. **Log Parameters and Metrics**: Logs the best hyperparameters and the best accuracy to MLflow.
 8. **Set Tags**: Logs tags related to the project, optimizer engine, model family, and feature set version.
 9. **Train Model**: Trains a logistic regression model using the best hyperparameters found by Optuna.
 10. **Log Model**: Logs the trained model as an artifact in MLflow.
 11. **Print Model URI**: Prints the URI of the logged model.
+12. **Evaluate Model**: Evaluates the model on the validation set and logs the evaluation metrics to MLflow.
 
 ### `blob_storage_deploy.py`
 
@@ -84,6 +85,24 @@ The `blob_storage_deploy.py` script performs the following steps:
 
 - `mlflow_utils.py`: Contains the `get_or_create_experiment` function to manage MLflow experiments.
 - `optuna_utils.py`: Contains the `champion_callback` and `logistic_regression_error` functions for Optuna optimization.
+
+## Output in MLflow Dashboard
+
+When you run the `iris_classification.py` script, the following will be logged and displayed in the MLflow dashboard:
+
+1. **Experiment Creation/Loading**: An experiment will be created or loaded in MLflow. This experiment will contain all the runs related to the Iris classification project.
+
+2. **Nested Runs**: A nested run will be logged within the experiment. This parent run will encapsulate several child runs, each corresponding to a training run performed during the Optuna hyperparameter tuning process.
+
+3. **Training Runs**: At the lowest level, there will be multiple training runs logged by Optuna. Each run will represent a different set of hyperparameters evaluated during the tuning process. Metrics such as accuracy and loss will be logged for each run.
+
+4. **Best Parameters Logging**: Once Optuna identifies the best hyperparameters, these parameters will be logged in the parent run. This includes the best hyperparameters and the corresponding performance metrics.
+
+5. **Model Registration**: The best model, trained with the optimal hyperparameters, will be registered as a new artifact in MLflow. The model will have a default validation status set to "pending".
+
+6. **Tags and Metrics**: Various tags and metrics will be logged for both the parent and child runs, providing detailed information about the experiment, optimizer engine, model family, and feature set version.
+
+By navigating to the MLflow dashboard, you can visualize and analyze the experiment, nested runs, and the performance of different hyperparameter configurations. The registered model can be accessed and managed through the MLflow model registry.
 
 ## License
 

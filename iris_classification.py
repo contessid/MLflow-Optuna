@@ -15,7 +15,7 @@ from optuna_utils import champion_callback, logistic_regression_error
 load_dotenv()
 
 mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
-# Set tags for the registered model
+
 client = mlflow.tracking.MlflowClient()
 
 iris = load_iris()
@@ -26,11 +26,24 @@ X_train, X_valid, y_train, y_valid = train_test_split(
 )
 
 # Set the current active MLflow experiment
-run_name = "third_attempt"
+# run_name = "fourth_attempt"
 experiment_id = get_or_create_experiment("Iris Classification")
 
+# Set the model tags
+mlflow.set_tags(
+    tags={
+        "project": "Iris Classification",
+        "optimizer_engine": "optuna",
+        "model_family": "logistic_regression",
+        "feature_set_version": 1,
+    }
+)
+mlflow.set_experiment(experiment_id=experiment_id)
+
 # Initiate the parent run and call the hyperparameter tuning child run logic
-with mlflow.start_run(experiment_id=experiment_id, run_name=run_name, nested=True):
+with mlflow.start_run(
+    nested=True
+):  # ,run_name=run_name, experiment_id=experiment_id, ):
     # Create an Optuna study
     study = optuna.create_study(
         direction="maximize",
@@ -48,24 +61,15 @@ with mlflow.start_run(experiment_id=experiment_id, run_name=run_name, nested=Tru
         callbacks=[champion_callback],
     )
 
-    mlflow.log_params(study.best_params)
-    mlflow.log_metric("best_accuracy", study.best_value)
-
-    # Log tags
-    mlflow.set_tags(
-        tags={
-            "project": "Iris Classification",
-            "optimizer_engine": "optuna",
-            "model_family": "logistic_regression",
-            "feature_set_version": 1,
-        }
-    )
-
     # Log a fit model instance
     model = LogisticRegression(**study.best_params)
     model.fit(X_train, y_train)
     signature = mlflow.models.infer_signature(X_train, y_train)
+
     artifact_path = "model"
+
+    mlflow.log_params(study.best_params)
+    mlflow.log_metric("best_accuracy", study.best_value)
 
     # Log the model as an artifact
     mlflow.sklearn.log_model(
