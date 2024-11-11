@@ -60,15 +60,45 @@ The `iris_classification.py` script performs the following steps:
 1. **Import Libraries**: Imports necessary libraries including MLflow, Optuna, and scikit-learn.
 2. **Load Dataset**: Loads the Iris dataset using scikit-learn's `load_iris` function.
 3. **Split Data**: Splits the dataset into training and validation sets.
+    ```python
+    X_train, X_valid, y_train, y_valid = train_test_split(
+        iris.data, iris.target, test_size=0.3
+    )
+    ```
 4. **Set MLflow Experiment**: Sets the current active MLflow experiment using the `get_or_create_experiment` function from `mlflow_utils.py`.
+    ```python
+    experiment_id = get_or_create_experiment("Iris Classification")
+    mlflow.set_experiment(experiment_id=experiment_id)
+    ```
 5. **Start MLflow Run**: Initiates an MLflow run and creates an Optuna study for hyperparameter tuning.
-6. **Optimize Hyperparameters**: Uses Optuna to optimize the hyperparameters of a logistic regression model. The `objective` function from `optuna_utils.py` is used as the objective function.
-7. **Log Parameters and Metrics**: Logs the best hyperparameters and the best accuracy to MLflow.
-8. **Set Tags**: Logs tags related to the project, optimizer engine, model family, and feature set version.
-9. **Train Model**: Trains a logistic regression model using the best hyperparameters found by Optuna.
-10. **Log Model**: Logs the trained model as an artifact in MLflow.
-11. **Print Model URI**: Prints the URI of the logged model.
-12. **Evaluate Model**: Evaluates the model on the validation set and logs the evaluation metrics to MLflow.
+    ```python
+    with mlflow.start_run(nested=True):
+        study = optuna.create_study(
+            direction="maximize",
+            study_name="Iris Classification",
+            load_if_exists=True,
+        )
+    ```
+6. **Optimize Hyperparameters**: Uses Optuna to optimize the hyperparameters of a logistic regression model. The `logistic_regression_error` function from `optuna_utils.py` is used as the objective function.
+    ```python
+    study.optimize(
+        lambda trial: logistic_regression_error(
+            trial, X_train, X_valid, y_train, y_valid
+        ),
+        n_trials=10,
+    )
+    ```
+7. **Load Best Model**: Loads the best model of the study from a file if it exists.
+    ```python
+    if os.path.exists("best_model.pkl"):
+        best_model = joblib.load("best_model.pkl")
+    ```
+8. **Log Parameters and Metrics**: Logs the best hyperparameters and the best accuracy to MLflow.
+9. **Set Tags**: Logs tags related to the project, optimizer engine, model family, and feature set version.
+10. **Train Model**: Trains a logistic regression model using the best hyperparameters found by Optuna.
+11. **Log Model**: Logs the trained model as an artifact in MLflow.
+12. **Print Model URI**: Prints the URI of the logged model.
+13. **Evaluate Model**: Evaluates the model on the validation set and logs the evaluation metrics to MLflow.
 
 ### `blob_storage_deploy.py`
 
@@ -96,9 +126,9 @@ When you run the `iris_classification.py` script, the following will be logged a
 
 3. **Training Runs**: At the lowest level, there will be multiple training runs logged by Optuna. Each run will represent a different set of hyperparameters evaluated during the tuning process. Metrics such as accuracy and loss will be logged for each run.
 
-4. **Best Parameters Logging**: Once Optuna identifies the best hyperparameters, these parameters will be logged in the parent run. This includes the best hyperparameters and the corresponding performance metrics.
+4. **Best Parameters Logging**: Once Optuna identifies the best hyperparameters, these parameters will be logged in the parent run. The parent run will take the name of the best trial. This includes the best hyperparameters, the corresponding performance metrics, and the model itself so there is no need to retrain.
 
-5. **Model Registration**: The best model, trained with the optimal hyperparameters, will be registered as a new artifact in MLflow. The model will have a default validation status set to "pending".
+5. **Model Registration**: The best model will be loaded from the best trial and registered as a new artifact in MLflow. The model will have a default validation status set to "pending".
 
 6. **Tags and Metrics**: Various tags and metrics will be logged for both the parent and child runs, providing detailed information about the experiment, optimizer engine, model family, and feature set version.
 
